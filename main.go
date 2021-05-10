@@ -170,6 +170,23 @@ func parseLogFile(loc string) (*Plot, error) {
 	return p, nil
 }
 
+func humanTime(seconds float64) string {
+	minutes := seconds / 60
+	hours := int(minutes / 60)
+	minutes -= float64(hours) * 60
+
+	return fmt.Sprintf("%dh %dm", hours, int(math.Round(minutes)))
+}
+
+func firstWord(str string) string {
+	for i, r := range str {
+		if r == ' ' {
+			return str[:i]
+		}
+	}
+	return str
+}
+
 func (p *Plot) scanLine(n int) error {
 	n = p.skipLines + (n - 3)
 	for ; p.currentLine < n; p.currentLine++ {
@@ -204,23 +221,6 @@ func (p Plot) String() string {
 		humanTime(p.Phases[4]),
 		humanTime(p.EndTime.Sub(p.StartTime).Seconds()),
 	)
-}
-
-func humanTime(seconds float64) string {
-	minutes := seconds / 60
-	hours := int(minutes / 60)
-	minutes -= float64(hours) * 60
-
-	return fmt.Sprintf("%dh %dm", hours, int(math.Round(minutes)))
-}
-
-func firstWord(str string) string {
-	for i, r := range str {
-		if r == ' ' {
-			return str[:i]
-		}
-	}
-	return str
 }
 
 func (p *Plot) skipCopyErrors() error {

@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type Plot struct {
+type plot struct {
 	KSize     int
 	RAM       int
 	Threads   int
@@ -26,7 +26,7 @@ type Plot struct {
 	currentLine int
 }
 
-var Errors = []string{
+var errorMatches = []string{
 	"Only wrote",
 	"Could not copy",
 }
@@ -72,7 +72,7 @@ func main() {
 		}
 	}
 
-	plots := []*Plot{}
+	plots := []*plot{}
 	failed := [][2]string{}
 	for _, loc := range paths {
 		p, err := parseLogFile(loc)
@@ -111,13 +111,13 @@ func main() {
 	}
 }
 
-func parseLogFile(loc string) (*Plot, error) {
+func parseLogFile(loc string) (*plot, error) {
 	file, err := os.Open(loc)
 	if err != nil {
 		return nil, err
 	}
 
-	p := new(Plot)
+	p := new(plot)
 	p.scanner = bufio.NewScanner(file)
 
 	// calculate variable length introduction
@@ -195,7 +195,7 @@ func firstWord(str string) string {
 	return str
 }
 
-func (p *Plot) scanLine(n int) error {
+func (p *plot) scanLine(n int) error {
 	n = p.skipLines + (n - 3)
 	for ; p.currentLine < n; p.currentLine++ {
 		if ok := p.scanner.Scan(); !ok {
@@ -207,7 +207,7 @@ func (p *Plot) scanLine(n int) error {
 		}
 
 		line := p.scanner.Text()
-		for _, start := range Errors {
+		for _, start := range errorMatches {
 			if strings.HasPrefix(line, start) {
 				p.skipLines++
 				n++
@@ -217,7 +217,7 @@ func (p *Plot) scanLine(n int) error {
 	return nil
 }
 
-func (p Plot) String() string {
+func (p plot) String() string {
 	return fmt.Sprintf("%-8d %-11d %-10d %-10s %-10s %-10s %-10s %-7s %-8s",
 		p.KSize,
 		p.RAM,
@@ -231,7 +231,7 @@ func (p Plot) String() string {
 	)
 }
 
-func (p *Plot) skipCopyErrors() error {
+func (p *plot) skipCopyErrors() error {
 	err := p.scanLine(2624)
 	if err != nil {
 		return err
@@ -246,7 +246,7 @@ func (p *Plot) skipCopyErrors() error {
 	return nil
 }
 
-func (p *Plot) parsePlotSize() (int, error) {
+func (p *plot) parsePlotSize() (int, error) {
 	err := p.scanLine(7)
 	if err != nil {
 		return 0, err
@@ -255,7 +255,7 @@ func (p *Plot) parsePlotSize() (int, error) {
 	return strconv.Atoi(line[14:])
 }
 
-func (p *Plot) parseBufferSize() (int, error) {
+func (p *plot) parseBufferSize() (int, error) {
 	err := p.scanLine(8)
 	if err != nil {
 		return 0, err
@@ -264,7 +264,7 @@ func (p *Plot) parseBufferSize() (int, error) {
 	return strconv.Atoi(line[16 : len(line)-3])
 }
 
-func (p *Plot) parseThreadCount() (int, error) {
+func (p *plot) parseThreadCount() (int, error) {
 	err := p.scanLine(10)
 	if err != nil {
 		return 0, err
@@ -273,7 +273,7 @@ func (p *Plot) parseThreadCount() (int, error) {
 	return strconv.Atoi(firstWord(line[6:]))
 }
 
-func (p *Plot) parseStartTime() (time.Time, error) {
+func (p *plot) parseStartTime() (time.Time, error) {
 	err := p.scanLine(12)
 	if err != nil {
 		return time.Time{}, err
@@ -283,7 +283,7 @@ func (p *Plot) parseStartTime() (time.Time, error) {
 	return time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
 }
 
-func (p *Plot) parsePhaseTimes() (phases [5]float64, err error) {
+func (p *plot) parsePhaseTimes() (phases [5]float64, err error) {
 	for i, n := range [4]int{801, 834, 2474, 2620} {
 		err = p.scanLine(n)
 		if err != nil {
@@ -299,7 +299,7 @@ func (p *Plot) parsePhaseTimes() (phases [5]float64, err error) {
 	return
 }
 
-func (p *Plot) parseCopyTime() (float64, error) {
+func (p *plot) parseCopyTime() (float64, error) {
 	err := p.scanLine(2625)
 	if err != nil {
 		return 0, err
@@ -308,7 +308,7 @@ func (p *Plot) parseCopyTime() (float64, error) {
 	return strconv.ParseFloat(firstWord(line[12:]), 64)
 }
 
-func (p *Plot) parseEndTime() (time.Time, error) {
+func (p *plot) parseEndTime() (time.Time, error) {
 	err := p.scanLine(2625)
 	if err != nil {
 		return time.Time{}, err

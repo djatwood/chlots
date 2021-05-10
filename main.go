@@ -39,7 +39,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		args = append(args, home+"/.chia/mainnet/plotter/")
+
+		args = append(args, strings.Join([]string{home, ".chia", "mainnet", "plotter"}, string(os.PathSeparator)))
 	}
 
 	var paths []string
@@ -62,8 +63,8 @@ func main() {
 				panic(err)
 			}
 
-			if !strings.HasSuffix(loc, "/") {
-				loc += "/"
+			if !strings.HasSuffix(loc, string(os.PathSeparator)) {
+				loc += string(os.PathSeparator)
 			}
 
 			for i := range paths {

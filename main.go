@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"math"
@@ -12,7 +13,7 @@ import (
 )
 
 func main() {
-	args := os.Args[1:]
+	args := flag.Args()
 
 	if len(args) < 1 {
 		home, err := os.UserHomeDir()
@@ -42,7 +43,7 @@ func main() {
 		return plots[i].EndTime.Before(plots[j].EndTime)
 	})
 
-	print(plots, failed)
+	export(plots, failed)
 }
 
 func getPaths(locations ...string) []string {

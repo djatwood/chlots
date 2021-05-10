@@ -117,35 +117,6 @@ func (p *plot) scanLine(n int) error {
 	return nil
 }
 
-func (p plot) String() string {
-	return fmt.Sprintf("%-8d %-11d %-10d %-10s %-10s %-10s %-10s %-7s %-8s",
-		p.KSize,
-		p.RAM,
-		p.Threads,
-		humanTime(p.Phases[0]),
-		humanTime(p.Phases[1]),
-		humanTime(p.Phases[2]),
-		humanTime(p.Phases[3]),
-		humanTime(p.Phases[4]),
-		humanTime(p.EndTime.Sub(p.StartTime).Seconds()),
-	)
-}
-
-func (p *plot) skipCopyErrors() error {
-	err := p.scanLine(2624)
-	if err != nil {
-		return err
-	}
-	for strings.HasPrefix(p.scanner.Text(), "Could not copy") {
-		err = p.scanLine(p.currentLine + 1)
-		if err != nil {
-			return err
-		}
-		p.skipLines++
-	}
-	return nil
-}
-
 func (p *plot) parsePlotSize() (int, error) {
 	err := p.scanLine(7)
 	if err != nil {

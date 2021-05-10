@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ func main() {
 			panic(err)
 		}
 
-		args = append(args, strings.Join([]string{home, ".chia", "mainnet", "plotter"}, string(os.PathSeparator)))
+		args = append(args, filepath.Join(home, ".chia", "mainnet", "plotter"))
 	}
 
 	var paths []string

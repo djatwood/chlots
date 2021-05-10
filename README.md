@@ -24,3 +24,11 @@ KSize    RAM(MiB)    Threads    Phase 1    Phase 2    Phase 3    Phase 4    Copy
 32       3390        2          3h 56m     1h 40m     2h 51m     0h 9m      0h 28m  9h 4m    00:24    09:28 
 32       3390        2          4h 3m      1h 41m     2h 39m     0h 8m      0h 24m  8h 55m   00:49    09:44 
 ```
+
+## Options
+
+**`-o`** output location
+
+**Supported extensions**
+* stdout *default*
+* filepath.csv

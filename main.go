@@ -32,28 +32,53 @@ var Errors = []string{
 }
 
 func main() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-	base := home + "/.chia/mainnet/plotter/"
-	dir, err := os.Open(base)
-	if err != nil {
-		panic(err)
+	args := os.Args[1:]
+
+	if len(args) < 1 {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			panic(err)
+		}
+		args = append(args, home+"/.chia/mainnet/plotter/")
 	}
 
-	paths, err := dir.Readdirnames(-1)
-	if err != nil {
-		panic(err)
-	}
-
-	sort.Slice(paths, func(i, j int) bool {
-		a, err := os.Stat(base + paths[i])
+	var paths []string
+	for _, loc := range args {
+		stats, err := os.Stat(loc)
 		if err != nil {
 			panic(err)
 		}
 
-		b, err := os.Stat(base + paths[j])
+		if !stats.IsDir() {
+			paths = append(paths, loc)
+		} else {
+			dir, err := os.Open(loc)
+			if err != nil {
+				panic(err)
+			}
+
+			paths, err = dir.Readdirnames(-1)
+			if err != nil {
+				panic(err)
+			}
+
+			if !strings.HasSuffix(loc, "/") {
+				loc += "/"
+			}
+
+			for i := range paths {
+				paths[i] = loc + paths[i]
+			}
+		}
+	}
+
+	sort.Slice(paths, func(i, j int) bool {
+		a, err := os.Stat(paths[i])
+		if err != nil {
+			panic(err)
+		}
+
+		b, err := os.Stat(paths[j])
 		if err != nil {
 			panic(err)
 		}
@@ -63,9 +88,7 @@ func main() {
 
 	failed := [][2]string{}
 	prevDate := [3]int{}
-	for _, name := range paths {
-		loc := base + name
-
+	for _, loc := range paths {
 		p, err := parseLogFile(loc)
 		if errors.Is(err, io.EOF) {
 			continue

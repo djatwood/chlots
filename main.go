@@ -108,17 +108,12 @@ func parseLogFile(loc string) (*Plot, error) {
 	p.scanner = bufio.NewScanner(file)
 
 	// calculate variable length introduction
+	p.skipLines = 3
 	for {
-		ok := p.scanner.Scan()
-		if !ok {
-			err := p.scanner.Err()
-			if err == nil {
-				err = io.EOF
-			}
+		err = p.scanLine(p.currentLine + 1)
+		if err != nil {
 			return nil, err
 		}
-
-		p.currentLine++
 		if len(p.scanner.Text()) == 0 {
 			p.skipLines = p.currentLine - 1
 			break

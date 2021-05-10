@@ -72,22 +72,8 @@ func main() {
 		}
 	}
 
-	sort.Slice(paths, func(i, j int) bool {
-		a, err := os.Stat(paths[i])
-		if err != nil {
-			panic(err)
-		}
-
-		b, err := os.Stat(paths[j])
-		if err != nil {
-			panic(err)
-		}
-
-		return a.ModTime().Before(b.ModTime())
-	})
-
+	plots := []*Plot{}
 	failed := [][2]string{}
-	prevDate := [3]int{}
 	for _, loc := range paths {
 		p, err := parseLogFile(loc)
 		if errors.Is(err, io.EOF) {
@@ -97,18 +83,22 @@ func main() {
 			failed = append(failed, [2]string{loc, err.Error()})
 			continue
 		}
+		plots = append(plots, p)
+	}
 
-		stat, err := os.Stat(loc)
-		if err != nil {
-			panic(err)
-		}
-		year, month, day := stat.ModTime().Date()
+	sort.Slice(plots, func(i, j int) bool {
+		return plots[i].EndTime.Before(plots[j].EndTime)
+	})
+
+	prevDate := [3]int{}
+	for _, p := range plots {
+		year, month, day := p.EndTime.Date()
 		if prevDate[0] != year || prevDate[1] != int(month) || prevDate[2] != day {
 			fmt.Printf("\n%s %d, %d\n", month, day, year)
 			fmt.Println("KSize    RAM(MiB)    Threads    Phase 1    Phase 2    Phase 3    Phase 4    Copy    Total    Start End")
 		}
 
-		fmt.Println(p, p.StartTime.Format("15:04"), stat.ModTime().Format("15:04"))
+		fmt.Println(p, p.StartTime.Format("15:04"), p.EndTime.Format("15:04"))
 
 		prevDate = [3]int{year, int(month), day}
 	}

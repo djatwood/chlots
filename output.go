@@ -63,9 +63,9 @@ func stdout(plots []*plot, failed map[string]error) {
 	}
 
 	if len(failed) > 0 {
-		fmt.Println("\nFailed to parse the following plots")
+		fmt.Fprintln(os.Stderr, "\nFailed to parse the following plots")
 		for loc, err := range failed {
-			fmt.Println(loc, err)
+			fmt.Fprintln(os.Stderr, loc, err)
 		}
 	}
 }

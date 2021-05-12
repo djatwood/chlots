@@ -83,8 +83,8 @@ func humanTime(seconds float64) string {
 	minutes := seconds / 60
 	hours := int(minutes / 60)
 	minutes -= float64(hours) * 60
-
-	return fmt.Sprintf("%dh %dm", hours, int(math.Round(minutes)))
+	raw := fmt.Sprintf("%dh %dm", hours, int(math.Round(minutes)))
+	return fmt.Sprintf("%-7s", raw)
 }
 
 func firstWord(str string) string {
@@ -101,4 +101,11 @@ func maxInt(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func mean(list []float64) (avg float64) {
+	for i, t := 0, 1.0; i < len(list); i, t = i+1, t+1 {
+		avg += (list[i] - avg) / t
+	}
+	return
 }

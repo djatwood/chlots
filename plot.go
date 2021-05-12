@@ -16,6 +16,7 @@ type plot struct {
 	Threads   int
 	Stripe    int
 	Phases    [5]float64
+	TotalTime float64
 	StartTime time.Time
 	EndTime   time.Time
 
@@ -92,6 +93,8 @@ func parseLogFile(loc string) (*plot, error) {
 	if err != nil {
 		return p, err
 	}
+
+	p.TotalTime = p.EndTime.Sub(p.StartTime).Seconds()
 
 	return p, nil
 }

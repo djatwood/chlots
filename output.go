@@ -5,12 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 )
 
-var output = flag.String("o", "stdout", "output filepath")
+var outputFormat = flag.String("f", "default", "output format")
 
 var cols = []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
 var colWidths = []int{2, 4, 7, 7, 7, 7, 7, 7, 7, 5, 5}
@@ -18,20 +17,17 @@ var colWidths = []int{2, 4, 7, 7, 7, 7, 7, 7, 7, 5, 5}
 func export(plots []*plot, failed map[string]error) {
 	flag.Parse()
 
-	if *output == "stdout" {
-		stdout(plots, failed)
-		return
-	}
-
-	switch path.Ext(*output) {
-	case ".csv":
-		tocsv(plots)
+	switch *outputFormat {
+	case "default":
+		defaultOutput(plots, failed)
+	case "csv":
+		csvFormat(plots)
 	default:
-		fmt.Println("Unknown output extension")
+		fmt.Fprintln(os.Stderr, "Unknown output extension")
 	}
 }
 
-func stdout(plots []*plot, failed map[string]error) {
+func defaultOutput(plots []*plot, failed map[string]error) {
 	var padding = 4
 	var format string
 	for i := range cols {
@@ -74,14 +70,8 @@ func stdout(plots []*plot, failed map[string]error) {
 	}
 }
 
-func tocsv(plots []*plot) {
-	file, err := os.Create(*output)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	w := csv.NewWriter(file)
+func csvFormat(plots []*plot) {
+	w := csv.NewWriter(os.Stdout)
 	w.Write(cols)
 
 	for _, p := range plots {

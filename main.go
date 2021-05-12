@@ -95,3 +95,10 @@ func firstWord(str string) string {
 	}
 	return str
 }
+
+func maxInt(a, b int) int {
+	if b > a {
+		return b
+	}
+	return a
+}

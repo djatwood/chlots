@@ -12,7 +12,8 @@ import (
 
 var output = flag.String("o", "stdout", "output filepath")
 
-var cols = []string{"KSize", "RAM(MiB)", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
+var cols = []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
+var colWidths = []int{2, 4, 7, 7, 7, 7, 7, 7, 7, 5, 5}
 
 func export(plots []*plot, failed map[string]error) {
 	flag.Parse()
@@ -33,8 +34,8 @@ func export(plots []*plot, failed map[string]error) {
 func stdout(plots []*plot, failed map[string]error) {
 	var padding = 4
 	var format string
-	for _, c := range cols {
-		format += fmt.Sprintf(" %%-%dv", len(c)+padding-1)
+	for i := range cols {
+		format += fmt.Sprintf(" %%-%dv", colWidths[i]+padding-1)
 	}
 	format = format[1:]
 
@@ -43,7 +44,10 @@ func stdout(plots []*plot, failed map[string]error) {
 		year, month, day := p.EndTime.Date()
 		if prevDate[0] != year || prevDate[1] != int(month) || prevDate[2] != day {
 			fmt.Printf("\n%s %d, %d\n", month, day, year)
-			fmt.Println(strings.Join(cols, strings.Repeat(" ", padding)))
+			for i, c := range cols {
+				fmt.Printf("%s%s", c, strings.Repeat(" ", padding+colWidths[i]-len(c)))
+			}
+			fmt.Println()
 		}
 
 		fmt.Printf(format+"\n", p.KSize,

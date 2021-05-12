@@ -14,6 +14,7 @@ type plot struct {
 	KSize     int
 	RAM       int
 	Threads   int
+	Stripe    int
 	Phases    [5]float64
 	StartTime time.Time
 	EndTime   time.Time
@@ -63,7 +64,7 @@ func parseLogFile(loc string) (*plot, error) {
 	}
 
 	// Parse Thread Count
-	p.Threads, err = p.parseThreadCount()
+	p.Threads, p.Stripe, err = p.parseThreadCount()
 	if err != nil {
 		return p, err
 	}
@@ -141,16 +142,24 @@ func (p *plot) parseBufferSize() (int, error) {
 	return strconv.Atoi(line[16 : len(line)-3])
 }
 
-func (p *plot) parseThreadCount() (int, error) {
+func (p *plot) parseThreadCount() (int, int, error) {
 	err := p.scanLine(10)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	line := p.scanner.Text()
 	if len(line) < 6 {
-		return 0, io.ErrUnexpectedEOF
+		return 0, 0, io.ErrUnexpectedEOF
 	}
-	return strconv.Atoi(firstWord(line[6:]))
+	threads, err := strconv.Atoi(firstWord(line[6:]))
+	if err != nil {
+		return 0, 0, err
+	}
+	stripe, err := strconv.Atoi(firstWord(line[31:]))
+	if err != nil {
+		return 0, 0, err
+	}
+	return threads, stripe, nil
 }
 
 func (p *plot) parseStartTime() (time.Time, error) {

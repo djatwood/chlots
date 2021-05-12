@@ -52,7 +52,7 @@ func stdout(plots []*plot, failed map[string]error) {
 
 		fmt.Printf(format+"\n", p.KSize,
 			p.RAM,
-			p.Threads,
+			fmt.Sprintf("%d:%d", p.Threads, p.Stripe),
 			humanTime(p.Phases[0]),
 			humanTime(p.Phases[1]),
 			humanTime(p.Phases[2]),
@@ -88,7 +88,7 @@ func tocsv(plots []*plot) {
 		record := []string{
 			strconv.Itoa(p.KSize),
 			strconv.Itoa(p.RAM),
-			strconv.Itoa(p.Threads),
+			fmt.Sprintf("%d:%d", p.Threads, p.Stripe),
 			humanTime(p.Phases[0]),
 			humanTime(p.Phases[1]),
 			humanTime(p.Phases[2]),

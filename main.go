@@ -84,7 +84,7 @@ func humanTime(seconds float64) string {
 	hours := int(minutes / 60)
 	minutes -= float64(hours) * 60
 
-	return fmt.Sprintf("%dh %dm", hours, int(math.Round(minutes)))
+	return fmt.Sprintf("%2dh %2dm", hours, int(math.Round(minutes)))
 }
 
 func firstWord(str string) string {

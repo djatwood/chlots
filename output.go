@@ -120,6 +120,10 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 		prevDate = [3]int{year, int(month), day}
 	}
 
+	if len(activePlots) > 0 {
+		parallelAverages[len(activePlots)] = append(parallelAverages[len(activePlots)], activePlots...)
+	}
+
 	if *outputAverages {
 		printConfigAverages(configAverages)
 		fmt.Println()

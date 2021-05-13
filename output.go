@@ -124,6 +124,12 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 		parallelAverages[len(activePlots)] = append(parallelAverages[len(activePlots)], activePlots...)
 	}
 
+	if len(table) > 0 {
+		printTable(fmt.Sprintf("%s %d, %d", time.Month(prevDate[1]), prevDate[2], prevDate[0]), cols, table)
+		fmt.Println()
+		table = [][]string{}
+	}
+
 	if *outputAverages {
 		printConfigAverages(configAverages)
 		fmt.Println()

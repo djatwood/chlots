@@ -35,7 +35,7 @@ K     RAM     Threads    Phase 1    Phase 2    Phase 3    Phase 4    Copy       
 
 **`-a`** display averages
 
-**Example**
+**Example** `chlots -a`
 ```
 Config Averages
 -------------------------------------------------------------------------------------------------

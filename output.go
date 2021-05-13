@@ -13,6 +13,7 @@ import (
 const tablePadding = 4
 
 var outputFormat = flag.String("f", "default", "output format")
+var outputAverages = flag.Bool("a", false, "display averages")
 
 var cols = []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
 
@@ -119,9 +120,11 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 		prevDate = [3]int{year, int(month), day}
 	}
 
-	printConfigAverages(configAverages)
-	fmt.Println()
-	printParallelAverages(parallelAverages)
+	if *outputAverages {
+		printConfigAverages(configAverages)
+		fmt.Println()
+		printParallelAverages(parallelAverages)
+	}
 
 	if len(failed) > 0 {
 		fmt.Fprintln(os.Stderr, "\nFailed to parse the following plots")

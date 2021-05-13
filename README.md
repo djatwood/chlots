@@ -32,3 +32,26 @@ K     RAM     Threads    Phase 1    Phase 2    Phase 3    Phase 4    Copy       
 **Supported options**
 * default *default*
 * csv
+
+**`-a`** display averages
+
+**Example**
+```
+Config Averages
+-------------------------------------------------------------------------------------------------
+K     RAM      Threads    Phase 1    Phase 2    Phase 3    Phase 4    Copy       Total      Plots    
+32    11444    4:65536    4h 26m     1h 20m     2h 38m     0h 10m     0h 54m     9h 30m     3        
+32    3390     3:65536    4h 7m      1h 28m     2h 58m     0h 10m     1h 26m     10h 9m     11       
+32    3814     3:65536    3h 39m     1h 18m     2h 33m     0h 10m     1h 9m      8h 49m     3        
+32    3400     2:65536    2h 56m     1h 8m      2h 20m     0h 9m      0h 37m     7h 11m     2        
+32    3400     3:65536    4h 44m     1h 23m     2h 53m     0h 10m     1h 10m     10h 20m    3        
+32    3390     2:65536    3h 36m     1h 38m     2h 55m     0h 11m     0h 47m     9h 6m      26       
+
+Parallel Averages
+-----------------------------------------------------------------------------------
+Phase 1    Phase 2    Phase 3    Phase 4    Copy       Total      Parallel    Plots    
+4h 10m     1h 52m     3h 54m     0h 16m     0h 33m     10h 44m    1           3        
+3h 38m     1h 32m     2h 47m     0h 10m     0h 49m     8h 55m     3           24       
+4h 16m     1h 30m     2h 56m     0h 10m     1h 22m     10h 14m    4           16       
+2h 56m     1h 8m      2h 20m     0h 9m      0h 37m     7h 11m     2           2
+```

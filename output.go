@@ -83,7 +83,9 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 		parallel := len(activePlots) == 0
 		for _, x := range activePlots {
 			if (!p.StartTime.Before(x.StartTime) && !p.StartTime.After(x.EndTime)) ||
-				(!p.EndTime.Before(x.StartTime) && !p.EndTime.After(x.EndTime)) {
+				(!p.EndTime.Before(x.StartTime) && !p.EndTime.After(x.EndTime)) ||
+				(!x.StartTime.Before(p.StartTime) && !x.StartTime.After(p.EndTime)) ||
+				(!x.EndTime.Before(p.StartTime) && !x.EndTime.After(p.EndTime)) {
 				parallel = true
 				break
 			}

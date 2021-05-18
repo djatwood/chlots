@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -226,12 +227,12 @@ func csvFormat(plots []*plot) {
 			strconv.Itoa(p.RAM),
 			strconv.Itoa(p.Threads),
 			strconv.Itoa(p.Stripe),
-			strings.TrimSpace(humanTime(p.Phases[0])),
-			strings.TrimSpace(humanTime(p.Phases[1])),
-			strings.TrimSpace(humanTime(p.Phases[2])),
-			strings.TrimSpace(humanTime(p.Phases[3])),
-			strings.TrimSpace(humanTime(p.Phases[4])),
-			strings.TrimSpace(humanTime(p.TotalTime)),
+			strconv.Itoa(int(math.Round(p.Phases[0]))),
+			strconv.Itoa(int(math.Round(p.Phases[1]))),
+			strconv.Itoa(int(math.Round(p.Phases[2]))),
+			strconv.Itoa(int(math.Round(p.Phases[3]))),
+			strconv.Itoa(int(math.Round(p.Phases[4]))),
+			strconv.Itoa(int(math.Round(p.TotalTime))),
 			p.StartTime.Format("2006-01-02 15:04:05"),
 			p.EndTime.Format("2006-01-02 15:04:05"),
 			p.TempDirs[0],
@@ -243,6 +244,5 @@ func csvFormat(plots []*plot) {
 			panic(err)
 		}
 	}
-
 	w.Flush()
 }

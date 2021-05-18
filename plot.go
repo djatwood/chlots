@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ type plot struct {
 	TotalTime float64
 	StartTime time.Time
 	EndTime   time.Time
+	TempDirs  [2]string
+	DestDir   string
 
 	scanner     *bufio.Scanner
 	skipLines   int
@@ -50,6 +53,12 @@ func parseLogFile(loc string) (*plot, error) {
 			p.skipLines = p.currentLine - 1
 			break
 		}
+	}
+
+	// Parse temp dirs
+	p.TempDirs, err = p.parseTempDirs()
+	if err != nil {
+		return p, err
 	}
 
 	// Parse Plot Size
@@ -96,6 +105,12 @@ func parseLogFile(loc string) (*plot, error) {
 
 	p.TotalTime = p.EndTime.Sub(p.StartTime).Seconds()
 
+	// Parse Dest Dir
+	p.DestDir, err = p.parseDestDir()
+	if err != nil {
+		return p, err
+	}
+
 	return p, nil
 }
 
@@ -119,6 +134,18 @@ func (p *plot) scanLine(n int) error {
 		}
 	}
 	return nil
+}
+
+func (p *plot) parseTempDirs() (dirs [2]string, err error) {
+	err = p.scanLine(5)
+	if err != nil {
+		return
+	}
+	line := p.scanner.Text()
+	parsed := strings.Split(line[48:], " and ")
+	dirs[0] = parsed[0]
+	dirs[1] = parsed[1]
+	return
 }
 
 func (p *plot) parsePlotSize() (int, error) {
@@ -222,4 +249,20 @@ func (p *plot) parseEndTime() (time.Time, error) {
 		return time.Time{}, io.ErrUnexpectedEOF
 	}
 	return time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
+}
+
+func (p *plot) parseDestDir() (string, error) {
+	err := p.scanLine(2627)
+	if err != nil {
+		return "", err
+	}
+	line := p.scanner.Text()[25:]
+	end := -1
+	for i := range line {
+		if line[i] == '"' {
+			end = i
+			break
+		}
+	}
+	return path.Dir(line[:end]), nil
 }

@@ -216,6 +216,7 @@ func printParallelAverages(groups map[int][]plot) {
 }
 
 func csvFormat(plots []*plot) {
+	cols := []string{"K", "RAM", "Threads", "Stripe", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End", "Temp 1", "Temp 2", "Dest"}
 	w := csv.NewWriter(os.Stdout)
 	w.Write(cols)
 
@@ -223,15 +224,19 @@ func csvFormat(plots []*plot) {
 		record := []string{
 			strconv.Itoa(p.KSize),
 			strconv.Itoa(p.RAM),
-			fmt.Sprintf("%d:%d", p.Threads, p.Stripe),
-			humanTime(p.Phases[0]),
-			humanTime(p.Phases[1]),
-			humanTime(p.Phases[2]),
-			humanTime(p.Phases[3]),
-			humanTime(p.Phases[4]),
-			humanTime(p.TotalTime),
+			strconv.Itoa(p.Threads),
+			strconv.Itoa(p.Stripe),
+			strings.TrimSpace(humanTime(p.Phases[0])),
+			strings.TrimSpace(humanTime(p.Phases[1])),
+			strings.TrimSpace(humanTime(p.Phases[2])),
+			strings.TrimSpace(humanTime(p.Phases[3])),
+			strings.TrimSpace(humanTime(p.Phases[4])),
+			strings.TrimSpace(humanTime(p.TotalTime)),
 			p.StartTime.Format("2006-01-02 15:04:05"),
 			p.EndTime.Format("2006-01-02 15:04:05"),
+			p.TempDirs[0],
+			p.TempDirs[1],
+			p.DestDir,
 		}
 		err := w.Write(record)
 		if err != nil {

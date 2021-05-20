@@ -29,7 +29,7 @@ func parseLog(reader io.Reader, jobs []parseJob) (*plot, error) {
 		if ok := scanner.Scan(); !ok {
 			err := scanner.Err()
 			if err == nil {
-				break
+				return p, io.EOF
 			}
 			return p, err
 		}

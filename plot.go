@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -28,9 +27,18 @@ type plot struct {
 	currentLine int
 }
 
-var errorMatches = []string{
-	"Only wrote",
-	"Could not copy",
+var lineMatches = []string{
+	"^Starting plotting",
+	"^Plot size",
+	"^Buffer size",
+	"*threads of stripe",
+	"^Starting phase 1",
+	"^Time for phase 1",
+	"^Time for phase 2",
+	"^Time for phase 3",
+	"^Time for phase 4",
+	"^Copy time",
+	"^Renamed final file",
 }
 
 func parseLogFile(loc string) (*plot, error) {
@@ -40,65 +48,104 @@ func parseLogFile(loc string) (*plot, error) {
 	}
 
 	p := new(plot)
-	p.scanner = bufio.NewScanner(file)
+	scanner := bufio.NewScanner(file)
 
-	// calculate variable length introduction
-	p.skipLines = 3
+	matches := lineMatches[:]
+	matcher := getMatcher(matches[0])
+	lines := make([]string, 0, len(matches))
 	for {
-		err = p.scanLine(p.currentLine + 1)
-		if err != nil {
-			return nil, err
+		if ok := scanner.Scan(); !ok {
+			err := scanner.Err()
+			if err == nil {
+				break
+			}
+			return p, err
 		}
-		if len(p.scanner.Text()) == 0 {
-			p.skipLines = p.currentLine - 1
-			break
+
+		line := scanner.Text()
+		if matcher(line, matches[0][1:]) {
+			lines = append(lines, line)
+			matches = matches[1:]
+			if len(matches) < 1 {
+				break
+			}
+			matcher = getMatcher(matches[0])
 		}
 	}
 
+	if len(lineMatches) != len(lines) {
+		return nil, io.EOF
+	}
+
 	// Parse temp dirs
-	p.TempDirs, err = p.parseTempDirs()
+	p.TempDirs, err = parseTempDirs(lines[0])
 	if err != nil {
 		return p, err
 	}
 
 	// Parse Plot Size
-	p.KSize, err = p.parsePlotSize()
+	lines = lines[1:]
+	p.KSize, err = parsePlotSize(lines[0])
 	if err != nil {
 		return p, err
 	}
 
 	// Parse Buffer Size
-	p.RAM, err = p.parseBufferSize()
+	lines = lines[1:]
+	p.RAM, err = parseBufferSize(lines[0])
 	if err != nil {
 		return p, err
 	}
 
 	// Parse Thread Count
-	p.Threads, p.Stripe, err = p.parseThreadCount()
+	lines = lines[1:]
+	p.Threads, p.Stripe, err = parseThreadCount(lines[0])
 	if err != nil {
 		return p, err
 	}
 
 	// Parse Start Time
-	p.StartTime, err = p.parseStartTime()
+	lines = lines[1:]
+	p.StartTime, err = parseStartTime(lines[0])
 	if err != nil {
 		return p, err
 	}
 
-	// Parse Time for Phases 1 - 4
-	p.Phases, err = p.parsePhaseTimes()
+	// Parse Time for Phase 1
+	lines = lines[1:]
+	p.Phases[0], err = parsePhaseTime(lines[0])
 	if err != nil {
 		return p, err
 	}
 
-	// Parse Copy Time
-	p.Phases[4], err = p.parseCopyTime()
+	// Parse Time for Phase 2
+	lines = lines[1:]
+	p.Phases[1], err = parsePhaseTime(lines[0])
 	if err != nil {
 		return p, err
 	}
 
-	// Parse End Time
-	p.EndTime, err = p.parseEndTime()
+	// Parse Time for Phase 3
+	lines = lines[1:]
+	p.Phases[2], err = parsePhaseTime(lines[0])
+	if err != nil {
+		return p, err
+	}
+
+	// Parse Time for Phase 4
+	lines = lines[1:]
+	p.Phases[3], err = parsePhaseTime(lines[0])
+	if err != nil {
+		return p, err
+	}
+
+	// Parse Copy Time & End Time
+	lines = lines[1:]
+	p.Phases[4], err = parseCopyTime(lines[0])
+	if err != nil {
+		return p, err
+	}
+	p.EndTime, err = parseEndTime(lines[0])
 	if err != nil {
 		return p, err
 	}
@@ -106,7 +153,8 @@ func parseLogFile(loc string) (*plot, error) {
 	p.TotalTime = p.EndTime.Sub(p.StartTime).Seconds()
 
 	// Parse Dest Dir
-	p.DestDir, err = p.parseDestDir()
+	lines = lines[1:]
+	p.DestDir, err = parseDestDir(lines[0])
 	if err != nil {
 		return p, err
 	}
@@ -114,155 +162,111 @@ func parseLogFile(loc string) (*plot, error) {
 	return p, nil
 }
 
-func (p *plot) scanLine(n int) error {
-	n = p.skipLines + (n - 3)
-	for ; p.currentLine < n; p.currentLine++ {
-		if ok := p.scanner.Scan(); !ok {
-			err := p.scanner.Err()
-			if err == nil {
-				return io.EOF
-			}
-			return err
-		}
-
-		line := p.scanner.Text()
-		for _, start := range errorMatches {
-			if strings.HasPrefix(line, start) {
-				p.skipLines++
-				n++
-			}
-		}
+func getMatcher(match string) func(string, string) bool {
+	switch match[0] {
+	case '^':
+		return strings.HasPrefix
+	case '$':
+		return strings.HasSuffix
+	default:
+		return strings.Contains
 	}
-	return nil
 }
 
-func (p *plot) parseTempDirs() (dirs [2]string, err error) {
-	err = p.scanLine(5)
-	if err != nil {
-		return
+func parseTempDirs(line string) ([2]string, error) {
+	parsed := strings.Split(line[48:], "and")
+	if len(parsed) != 2 {
+		return [2]string{}, io.ErrUnexpectedEOF
 	}
-	line := p.scanner.Text()
-	parsed := strings.Split(line[48:], " and ")
-	dirs[0] = parsed[0]
-	dirs[1] = parsed[1]
-	return
+	return [2]string{
+		parsed[0],
+		parsed[1],
+	}, nil
 }
 
-func (p *plot) parsePlotSize() (int, error) {
-	err := p.scanLine(7)
-	if err != nil {
-		return 0, err
-	}
-	line := p.scanner.Text()
+func parsePlotSize(line string) (int, error) {
 	if len(line) < 14 {
 		return 0, io.ErrUnexpectedEOF
 	}
 	return strconv.Atoi(line[14:])
 }
 
-func (p *plot) parseBufferSize() (int, error) {
-	err := p.scanLine(8)
-	if err != nil {
-		return 0, err
-	}
-	line := p.scanner.Text()
+func parseBufferSize(line string) (int, error) {
 	if len(line) < 19 {
 		return 0, io.ErrUnexpectedEOF
 	}
 	return strconv.Atoi(line[16 : len(line)-3])
 }
 
-func (p *plot) parseThreadCount() (int, int, error) {
-	err := p.scanLine(10)
-	if err != nil {
-		return 0, 0, err
-	}
-	line := p.scanner.Text()
+func parseThreadCount(line string) (threads int, stripe int, err error) {
 	if len(line) < 6 {
 		return 0, 0, io.ErrUnexpectedEOF
 	}
-	threads, err := strconv.Atoi(firstWord(line[6:]))
-	if err != nil {
-		return 0, 0, err
+	var wordCount, wordStart int
+	// Rather than adding a check after the loop, add a space to force a final check
+	for i, r := range line + " " {
+		if r != ' ' {
+			continue
+		}
+
+		wordCount++
+		switch wordCount {
+		case 2:
+			threads, err = strconv.Atoi(line[wordStart:i])
+			if err != nil {
+				return
+			}
+		case 7:
+			stripe, err = strconv.Atoi(line[wordStart:i])
+			if err != nil {
+				return
+			}
+		}
+		wordStart = i + 1
 	}
-	stripe, err := strconv.Atoi(firstWord(line[31:]))
-	if err != nil {
-		return 0, 0, err
-	}
-	return threads, stripe, nil
+	return
 }
 
-func (p *plot) parseStartTime() (time.Time, error) {
-	err := p.scanLine(12)
-	if err != nil {
-		return time.Time{}, err
-	}
-	line := p.scanner.Text()
+func parseStartTime(line string) (time.Time, error) {
 	start := strings.LastIndex(line, "...") + 3
 	if len(line) < start {
-		return time.Time{}, err
+		return time.Time{}, io.ErrUnexpectedEOF
 	}
 	return time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
 }
 
-func (p *plot) parsePhaseTimes() (phases [5]float64, err error) {
-	for i, n := range [4]int{801, 834, 2474, 2620} {
-		err = p.scanLine(n)
-		if err != nil {
-			return
-		}
-		line := p.scanner.Text()
-		if len(line) < 19 {
-			err = io.ErrUnexpectedEOF
-			return
-		}
-		phases[i], err = strconv.ParseFloat(firstWord(line[19:]), 64)
-		if err != nil {
-			return
-		}
+func parsePhaseTime(line string) (float64, error) {
+	if len(line) < 19 {
+		return 0, io.ErrUnexpectedEOF
 	}
-
-	return
+	return strconv.ParseFloat(firstWord(line[19:]), 64)
 }
 
-func (p *plot) parseCopyTime() (float64, error) {
-	err := p.scanLine(2625)
-	if err != nil {
-		return 0, err
-	}
-	line := p.scanner.Text()
+func parseCopyTime(line string) (float64, error) {
 	if len(line) < 12 {
 		return 0, io.ErrUnexpectedEOF
 	}
 	return strconv.ParseFloat(firstWord(line[12:]), 64)
 }
 
-func (p *plot) parseEndTime() (time.Time, error) {
-	err := p.scanLine(2625)
-	if err != nil {
-		return time.Time{}, err
-	}
-	line := p.scanner.Text()
+func parseEndTime(line string) (time.Time, error) {
 	start := strings.LastIndex(line, ")") + 1
 	if len(line) < start {
-		fmt.Println("LENGTH", line)
 		return time.Time{}, io.ErrUnexpectedEOF
 	}
 	return time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
 }
 
-func (p *plot) parseDestDir() (string, error) {
-	err := p.scanLine(2627)
-	if err != nil {
-		return "", err
-	}
-	line := p.scanner.Text()[25:]
-	end := -1
-	for i := range line {
+func parseDestDir(line string) (string, error) {
+	start, end := 25, -1
+	for i := range line[start:] {
 		if line[i] == '"' {
-			end = i
+			end = i + start
 			break
 		}
 	}
-	return path.Dir(line[:end]), nil
+	if end == -1 {
+		return "", io.ErrUnexpectedEOF
+	}
+	return path.Dir(line[start:end]), nil
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/csv"
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -11,18 +10,12 @@ import (
 	"time"
 )
 
-var outputFormat = flag.String("f", "default", "output format")
-var outputAverages = flag.Bool("a", false, "display averages")
-var tablePadding = flag.Int("p", 4, "table padding for default output")
-
 var cols = []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
 
-func export(plots []*plot, failed map[string]error) {
-	flag.Parse()
-
-	switch *outputFormat {
+func export(plots []*plot, failed map[string]error, out options) {
+	switch out.format {
 	case "default":
-		defaultFormat(plots, failed)
+		defaultFormat(plots, failed, out)
 	case "csv":
 		csvFormat(plots)
 	default:
@@ -30,7 +23,7 @@ func export(plots []*plot, failed map[string]error) {
 	}
 }
 
-func printTable(name string, cols []string, values [][]string) error {
+func printTable(name string, cols []string, values [][]string, padding int) error {
 	widths := make([]int, len(cols))
 	for _, row := range append(values, cols) {
 		if len(row) > len(cols) {
@@ -42,20 +35,20 @@ func printTable(name string, cols []string, values [][]string) error {
 			}
 		}
 	}
-	tableWidth := -*tablePadding
+	tableWidth := -padding
 	for _, n := range widths {
-		tableWidth += n + *tablePadding
+		tableWidth += n + padding
 	}
 
 	var format string
 	for i := range cols {
-		format += fmt.Sprintf("%%-%dv", widths[i]+*tablePadding)
+		format += fmt.Sprintf("%%-%dv", widths[i]+padding)
 	}
 
 	fmt.Println(name)
 	fmt.Println(strings.Repeat("-", tableWidth))
 	for i, c := range cols {
-		fmt.Printf("%s%s", c, strings.Repeat(" ", *tablePadding+widths[i]-len(c)))
+		fmt.Printf("%s%s", c, strings.Repeat(" ", padding+widths[i]-len(c)))
 	}
 	fmt.Println()
 
@@ -70,7 +63,7 @@ func printTable(name string, cols []string, values [][]string) error {
 	return nil
 }
 
-func defaultFormat(plots []*plot, failed map[string]error) {
+func defaultFormat(plots []*plot, failed map[string]error, out options) {
 	configAverages := make(map[string][]plot)
 	parallelAverages := make(map[int][]plot)
 	activePlots := []plot{}
@@ -100,7 +93,7 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 
 		year, month, day := p.EndTime.Date()
 		if len(table) > 0 && (prevDate[0] != year || prevDate[1] != int(month) || prevDate[2] != day) {
-			printTable(fmt.Sprintf("%s %d, %d", time.Month(prevDate[1]), prevDate[2], prevDate[0]), cols, table)
+			printTable(fmt.Sprintf("%s %d, %d", time.Month(prevDate[1]), prevDate[2], prevDate[0]), cols, table, out.padding)
 			fmt.Println()
 			table = [][]string{}
 		}
@@ -127,15 +120,15 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 	}
 
 	if len(table) > 0 {
-		printTable(fmt.Sprintf("%s %d, %d", time.Month(prevDate[1]), prevDate[2], prevDate[0]), cols, table)
+		printTable(fmt.Sprintf("%s %d, %d", time.Month(prevDate[1]), prevDate[2], prevDate[0]), cols, table, out.padding)
 		fmt.Println()
 		table = [][]string{}
 	}
 
-	if *outputAverages {
-		printConfigAverages(configAverages)
+	if out.averages {
+		printConfigAverages(configAverages, out.padding)
 		fmt.Println()
-		printParallelAverages(parallelAverages)
+		printParallelAverages(parallelAverages, out.padding)
 	}
 
 	if len(failed) > 0 {
@@ -146,7 +139,7 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 	}
 }
 
-func printConfigAverages(groups map[string][]plot) {
+func printConfigAverages(groups map[string][]plot, padding int) {
 	table := [][]string{}
 	for _, plots := range groups {
 		values := make([][]float64, 6)
@@ -180,10 +173,10 @@ func printConfigAverages(groups map[string][]plot) {
 	}
 
 	cols := append(cols[:9], "Plots")
-	printTable("Config Averages", cols, table)
+	printTable("Config Averages", cols, table, padding)
 }
 
-func printParallelAverages(groups map[int][]plot) {
+func printParallelAverages(groups map[int][]plot, padding int) {
 	table := [][]string{}
 	for c, plots := range groups {
 		values := make([][]float64, 6)
@@ -209,7 +202,7 @@ func printParallelAverages(groups map[int][]plot) {
 	}
 
 	cols := []string{"Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Parallel", "Plots"}
-	err := printTable("Parallel Averages", cols, table)
+	err := printTable("Parallel Averages", cols, table, padding)
 	if err != nil {
 		panic(err)
 	}

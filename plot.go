@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"io"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -23,35 +22,9 @@ type plot struct {
 	DestDir   string
 }
 
-type parseJob struct {
-	match   string
-	matcher func(line string, substr string) bool
-	exec    func(p *plot, line string) error
-}
-
-var parseJobs = []parseJob{
-	{"Starting plotting", strings.HasPrefix, parseTempDirs},
-	{"Plot size", strings.HasPrefix, parseKSize},
-	{"Buffer size", strings.HasPrefix, parseBufferSize},
-	{"threads of stripe", strings.Contains, parseThreadCount},
-	{"Starting phase 1", strings.HasPrefix, parseStartTime},
-	{"Time for phase 1", strings.HasPrefix, parsePhaseTime},
-	{"Time for phase 2", strings.HasPrefix, parsePhaseTime},
-	{"Time for phase 3", strings.HasPrefix, parsePhaseTime},
-	{"Time for phase 4", strings.HasPrefix, parsePhaseTime},
-	{"Copy time", strings.HasPrefix, parseCopyTime},
-	{"Renamed final file", strings.HasPrefix, parseDestDir},
-}
-
-func parseLogFile(loc string) (*plot, error) {
-	file, err := os.Open(loc)
-	if err != nil {
-		return nil, err
-	}
-
+func parseLog(reader io.Reader, jobs []parseJob) (*plot, error) {
 	p := new(plot)
-	scanner := bufio.NewScanner(file)
-	jobs := parseJobs[:]
+	scanner := bufio.NewScanner(reader)
 	for len(jobs) > 0 {
 		if ok := scanner.Scan(); !ok {
 			err := scanner.Err()
@@ -63,7 +36,7 @@ func parseLogFile(loc string) (*plot, error) {
 
 		j, line := jobs[0], scanner.Text()
 		if j.matcher(line, j.match) {
-			err = j.exec(p, line)
+			err := j.exec(p, line)
 			if err != nil {
 				return p, err
 			}

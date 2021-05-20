@@ -12,7 +12,39 @@ import (
 	"strings"
 )
 
+type options struct {
+	format   string
+	padding  int
+	averages bool
+}
+
+type parseJob struct {
+	match   string
+	matcher func(line string, substr string) bool
+	exec    func(p *plot, line string) error
+}
+
+var (
+	outputFormat   = flag.String("f", "default", "output format")
+	outputAverages = flag.Bool("a", false, "display averages")
+	tablePadding   = flag.Int("p", 4, "table padding for default output")
+	parseJobs      = []parseJob{
+		{"Starting plotting", strings.HasPrefix, parseTempDirs},
+		{"Plot size", strings.HasPrefix, parseKSize},
+		{"Buffer size", strings.HasPrefix, parseBufferSize},
+		{"threads of stripe", strings.Contains, parseThreadCount},
+		{"Starting phase 1", strings.HasPrefix, parseStartTime},
+		{"Time for phase 1", strings.HasPrefix, parsePhaseTime},
+		{"Time for phase 2", strings.HasPrefix, parsePhaseTime},
+		{"Time for phase 3", strings.HasPrefix, parsePhaseTime},
+		{"Time for phase 4", strings.HasPrefix, parsePhaseTime},
+		{"Copy time", strings.HasPrefix, parseCopyTime},
+		{"Renamed final file", strings.HasPrefix, parseDestDir},
+	}
+)
+
 func main() {
+	flag.Parse()
 	args := flag.Args()
 
 	if len(args) < 1 {
@@ -28,7 +60,11 @@ func main() {
 	plots := make([]*plot, 0, len(paths))
 	failed := make(map[string]error)
 	for _, loc := range paths {
-		p, err := parseLogFile(loc)
+		file, err := os.Open(loc)
+		if err != nil {
+			failed[loc] = err
+		}
+		p, err := parseLog(file, parseJobs)
 		if errors.Is(err, io.EOF) {
 			continue
 		}
@@ -43,7 +79,11 @@ func main() {
 		return plots[i].EndTime.Before(plots[j].EndTime)
 	})
 
-	export(plots, failed)
+	export(plots, failed, options{
+		format:   *outputFormat,
+		averages: *outputAverages,
+		padding:  *tablePadding,
+	})
 }
 
 func getPaths(locations ...string) []string {

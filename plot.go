@@ -21,10 +21,6 @@ type plot struct {
 	EndTime   time.Time
 	TempDirs  [2]string
 	DestDir   string
-
-	scanner     *bufio.Scanner
-	skipLines   int
-	currentLine int
 }
 
 var lineMatches = []string{

@@ -2,7 +2,7 @@
 
 CLI tool to easily parse Chia log files and understand phase durations at a glance.
 
-## Output
+## Default Output + Averages
 
 ```
 May 5, 2021
@@ -44,6 +44,14 @@ Phase 1    Phase 2    Phase 3    Phase 4    Copy       Total      Parallel    Pl
 4h 16m     1h 30m     2h 56m     0h 10m     1h 22m     10h 14m    4           16
 2h 56m     1h 8m      2h 20m     0h 9m      0h 37m     7h 11m     2           2
 ```
+
+## CSV Output
+
+|K|RAM|Threads|Stripe|Phase 1|Phase 2|Phase 3|Phase 4|Copy|Total|Start|End|Temp 1|Temp 2|Dest|
+|-|---|-------|------|-------|-------|-------|-------|----|-----|-----|---|------|------|----|
+|32|3390|2|65536|12677|6681|10905|608|1060|31932|2021-05-06 23:59:34|2021-05-07 08:51:46|/media/datwood/Chia Temp|/media/datwood/Chia Temp|/media/datwood/DA 2|
+|32|3390|2|65536|14142|6019|10277|518|1671|32626|2021-05-07 00:24:35|2021-05-07 09:28:21|/media/datwood/Chia Temp|/media/datwood/Chia Temp|/media/datwood/DA 2|
+|32|3390|2|65536|14560|6040|9560|499|1418|32078|2021-05-07 00:49:34|2021-05-07 09:44:12|/media/datwood/Chia Temp|/media/datwood/Chia Temp|/media/datwood/DA 2|
 
 ## Options
 

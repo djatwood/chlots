@@ -11,10 +11,9 @@ import (
 	"time"
 )
 
-const tablePadding = 4
-
 var outputFormat = flag.String("f", "default", "output format")
 var outputAverages = flag.Bool("a", false, "display averages")
+var tablePadding = flag.Int("p", 4, "table padding for default output")
 
 var cols = []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
 
@@ -43,20 +42,20 @@ func printTable(name string, cols []string, values [][]string) error {
 			}
 		}
 	}
-	tableWidth := -tablePadding
+	tableWidth := -*tablePadding
 	for _, n := range widths {
-		tableWidth += n + tablePadding
+		tableWidth += n + *tablePadding
 	}
 
 	var format string
 	for i := range cols {
-		format += fmt.Sprintf("%%-%dv", widths[i]+tablePadding)
+		format += fmt.Sprintf("%%-%dv", widths[i]+*tablePadding)
 	}
 
 	fmt.Println(name)
 	fmt.Println(strings.Repeat("-", tableWidth))
 	for i, c := range cols {
-		fmt.Printf("%s%s", c, strings.Repeat(" ", tablePadding+widths[i]-len(c)))
+		fmt.Printf("%s%s", c, strings.Repeat(" ", *tablePadding+widths[i]-len(c)))
 	}
 	fmt.Println()
 

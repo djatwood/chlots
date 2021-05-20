@@ -12,7 +12,7 @@ import (
 
 type plot struct {
 	KSize     int
-	RAM       int
+	Buffer    int
 	Threads   int
 	Stripe    int
 	Phases    [5]float64
@@ -23,18 +23,24 @@ type plot struct {
 	DestDir   string
 }
 
-var lineMatches = []string{
-	"^Starting plotting",
-	"^Plot size",
-	"^Buffer size",
-	"*threads of stripe",
-	"^Starting phase 1",
-	"^Time for phase 1",
-	"^Time for phase 2",
-	"^Time for phase 3",
-	"^Time for phase 4",
-	"^Copy time",
-	"^Renamed final file",
+type parseJob struct {
+	match   string
+	matcher func(line string, substr string) bool
+	exec    func(p *plot, line string) error
+}
+
+var parseJobs = []parseJob{
+	{"Starting plotting", strings.HasPrefix, parseTempDirs},
+	{"Plot size", strings.HasPrefix, parseKSize},
+	{"Buffer size", strings.HasPrefix, parseBufferSize},
+	{"threads of stripe", strings.Contains, parseThreadCount},
+	{"Starting phase 1", strings.HasPrefix, parseStartTime},
+	{"Time for phase 1", strings.HasPrefix, parsePhaseTime},
+	{"Time for phase 2", strings.HasPrefix, parsePhaseTime},
+	{"Time for phase 3", strings.HasPrefix, parsePhaseTime},
+	{"Time for phase 4", strings.HasPrefix, parsePhaseTime},
+	{"Copy time", strings.HasPrefix, parseCopyTime},
+	{"Renamed final file", strings.HasPrefix, parseDestDir},
 }
 
 func parseLogFile(loc string) (*plot, error) {
@@ -45,11 +51,8 @@ func parseLogFile(loc string) (*plot, error) {
 
 	p := new(plot)
 	scanner := bufio.NewScanner(file)
-
-	matches := lineMatches[:]
-	matcher := getMatcher(matches[0])
-	lines := make([]string, 0, len(matches))
-	for {
+	jobs := parseJobs[:]
+	for len(jobs) > 0 {
 		if ok := scanner.Scan(); !ok {
 			err := scanner.Err()
 			if err == nil {
@@ -58,146 +61,51 @@ func parseLogFile(loc string) (*plot, error) {
 			return p, err
 		}
 
-		line := scanner.Text()
-		if matcher(line, matches[0][1:]) {
-			lines = append(lines, line)
-			matches = matches[1:]
-			if len(matches) < 1 {
-				break
+		j, line := jobs[0], scanner.Text()
+		if j.matcher(line, j.match) {
+			err = j.exec(p, line)
+			if err != nil {
+				return p, err
 			}
-			matcher = getMatcher(matches[0])
+			jobs = jobs[1:]
 		}
-	}
-
-	if len(lineMatches) != len(lines) {
-		return nil, io.EOF
-	}
-
-	// Parse temp dirs
-	p.TempDirs, err = parseTempDirs(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Plot Size
-	lines = lines[1:]
-	p.KSize, err = parsePlotSize(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Buffer Size
-	lines = lines[1:]
-	p.RAM, err = parseBufferSize(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Thread Count
-	lines = lines[1:]
-	p.Threads, p.Stripe, err = parseThreadCount(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Start Time
-	lines = lines[1:]
-	p.StartTime, err = parseStartTime(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Time for Phase 1
-	lines = lines[1:]
-	p.Phases[0], err = parsePhaseTime(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Time for Phase 2
-	lines = lines[1:]
-	p.Phases[1], err = parsePhaseTime(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Time for Phase 3
-	lines = lines[1:]
-	p.Phases[2], err = parsePhaseTime(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Time for Phase 4
-	lines = lines[1:]
-	p.Phases[3], err = parsePhaseTime(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	// Parse Copy Time & End Time
-	lines = lines[1:]
-	p.Phases[4], err = parseCopyTime(lines[0])
-	if err != nil {
-		return p, err
-	}
-	p.EndTime, err = parseEndTime(lines[0])
-	if err != nil {
-		return p, err
-	}
-
-	p.TotalTime = p.EndTime.Sub(p.StartTime).Seconds()
-
-	// Parse Dest Dir
-	lines = lines[1:]
-	p.DestDir, err = parseDestDir(lines[0])
-	if err != nil {
-		return p, err
 	}
 
 	return p, nil
 }
 
-func getMatcher(match string) func(string, string) bool {
-	switch match[0] {
-	case '^':
-		return strings.HasPrefix
-	case '$':
-		return strings.HasSuffix
-	default:
-		return strings.Contains
-	}
-}
-
-func parseTempDirs(line string) ([2]string, error) {
-	parsed := strings.Split(line[48:], "and")
+func parseTempDirs(p *plot, line string) error {
+	parsed := strings.Split(line[48:], " and ")
 	if len(parsed) != 2 {
-		return [2]string{}, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return [2]string{
-		parsed[0],
-		parsed[1],
-	}, nil
+	p.TempDirs = [2]string{parsed[0], parsed[1]}
+	return nil
 }
 
-func parsePlotSize(line string) (int, error) {
+func parseKSize(p *plot, line string) error {
 	if len(line) < 14 {
-		return 0, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return strconv.Atoi(line[14:])
+	var err error
+	p.KSize, err = strconv.Atoi(line[14:])
+	return err
 }
 
-func parseBufferSize(line string) (int, error) {
+func parseBufferSize(p *plot, line string) error {
 	if len(line) < 19 {
-		return 0, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return strconv.Atoi(line[16 : len(line)-3])
+	var err error
+	p.Buffer, err = strconv.Atoi(line[16 : len(line)-3])
+	return err
 }
 
-func parseThreadCount(line string) (threads int, stripe int, err error) {
+func parseThreadCount(p *plot, line string) error {
 	if len(line) < 6 {
-		return 0, 0, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
+	var err error
 	var wordCount, wordStart int
 	// Rather than adding a check after the loop, add a space to force a final check
 	for i, r := range line + " " {
@@ -208,52 +116,70 @@ func parseThreadCount(line string) (threads int, stripe int, err error) {
 		wordCount++
 		switch wordCount {
 		case 2:
-			threads, err = strconv.Atoi(line[wordStart:i])
+			p.Threads, err = strconv.Atoi(line[wordStart:i])
 			if err != nil {
-				return
+				return err
 			}
 		case 7:
-			stripe, err = strconv.Atoi(line[wordStart:i])
+			p.Stripe, err = strconv.Atoi(line[wordStart:i])
 			if err != nil {
-				return
+				return err
 			}
 		}
 		wordStart = i + 1
 	}
-	return
+	return nil
 }
 
-func parseStartTime(line string) (time.Time, error) {
+func parseStartTime(p *plot, line string) error {
 	start := strings.LastIndex(line, "...") + 3
 	if len(line) < start {
-		return time.Time{}, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
+	var err error
+	p.StartTime, err = time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
+	return err
 }
 
-func parsePhaseTime(line string) (float64, error) {
+func parsePhaseTime(p *plot, line string) error {
 	if len(line) < 19 {
-		return 0, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return strconv.ParseFloat(firstWord(line[19:]), 64)
+	phase, err := strconv.Atoi(firstWord(line[15:]))
+	if err != nil {
+		return err
+	}
+	seconds, err := strconv.ParseFloat(firstWord(line[19:]), 64)
+	if err != nil {
+		return err
+	}
+	p.Phases[phase-1] = seconds
+	return nil
 }
 
-func parseCopyTime(line string) (float64, error) {
+func parseCopyTime(p *plot, line string) error {
 	if len(line) < 12 {
-		return 0, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return strconv.ParseFloat(firstWord(line[12:]), 64)
-}
-
-func parseEndTime(line string) (time.Time, error) {
+	var err error
+	p.Phases[4], err = strconv.ParseFloat(firstWord(line[12:]), 64)
+	if err != nil {
+		return err
+	}
+	// Parse End Time
 	start := strings.LastIndex(line, ")") + 1
 	if len(line) < start {
-		return time.Time{}, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
+	p.EndTime, err = time.Parse("Mon Jan  2 15:04:05 2006", strings.TrimSpace(line[start:]))
+	if err != nil {
+		return err
+	}
+	p.TotalTime = p.EndTime.Sub(p.StartTime).Seconds()
+	return nil
 }
 
-func parseDestDir(line string) (string, error) {
+func parseDestDir(p *plot, line string) error {
 	start, end := 25, -1
 	for i := range line[start:] {
 		if line[i] == '"' {
@@ -262,7 +188,8 @@ func parseDestDir(line string) (string, error) {
 		}
 	}
 	if end == -1 {
-		return "", io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return path.Dir(line[start:end]), nil
+	p.DestDir = path.Dir(line[start:end])
+	return nil
 }

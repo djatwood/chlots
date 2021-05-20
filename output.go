@@ -77,7 +77,7 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 	prevDate := [3]int{}
 	table := [][]string{}
 	for _, p := range plots {
-		configKey := fmt.Sprintf("%d:%d:%d:%d", p.KSize, p.RAM, p.Threads, p.Stripe)
+		configKey := fmt.Sprintf("%d:%d:%d:%d", p.KSize, p.Buffer, p.Threads, p.Stripe)
 		configAverages[configKey] = append(configAverages[configKey], *p)
 
 		parallel := len(activePlots) == 0
@@ -107,7 +107,7 @@ func defaultFormat(plots []*plot, failed map[string]error) {
 
 		table = append(table, []string{
 			strconv.Itoa(p.KSize),
-			strconv.Itoa(p.RAM),
+			strconv.Itoa(p.Buffer),
 			fmt.Sprintf("%d:%d", p.Threads, p.Stripe),
 			humanTime(p.Phases[0]),
 			humanTime(p.Phases[1]),
@@ -152,7 +152,7 @@ func printConfigAverages(groups map[string][]plot) {
 		values := make([][]float64, 6)
 		avg := plot{
 			KSize:   plots[0].KSize,
-			RAM:     plots[0].RAM,
+			Buffer:  plots[0].Buffer,
 			Threads: plots[0].Threads,
 			Stripe:  plots[0].Stripe,
 		}
@@ -167,7 +167,7 @@ func printConfigAverages(groups map[string][]plot) {
 
 		table = append(table, []string{
 			strconv.Itoa(avg.KSize),
-			strconv.Itoa(avg.RAM),
+			strconv.Itoa(avg.Buffer),
 			fmt.Sprintf("%d:%d", avg.Threads, avg.Stripe),
 			humanTime(mean(values[0])),
 			humanTime(mean(values[1])),
@@ -223,7 +223,7 @@ func csvFormat(plots []*plot) {
 	for _, p := range plots {
 		record := []string{
 			strconv.Itoa(p.KSize),
-			strconv.Itoa(p.RAM),
+			strconv.Itoa(p.Buffer),
 			strconv.Itoa(p.Threads),
 			strconv.Itoa(p.Stripe),
 			strconv.Itoa(int(math.Round(p.Phases[0]))),

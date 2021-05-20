@@ -70,3 +70,9 @@ Sets output format. Can be piped to file.
 Displays config and parallel averages
 
 `chlots -a`
+
+### `-p` table padding
+
+Controls the spacing between columns. *default: 4*
+
+`chlots -p 2`

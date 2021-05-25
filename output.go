@@ -73,6 +73,18 @@ func defaultFormat(plots []*plot, failed map[string]error, out options) {
 	prevDate := [3]int{}
 	table := [][]string{}
 	for i, p := range plots {
+		year, month, day := p.EndTime.Date()
+		if len(table) > 0 && (prevDate[0] != year || prevDate[1] != int(month) || prevDate[2] != day) {
+			durs := make([]float64, len(table))
+			for j, x := range plots[i-len(table) : i] {
+				durs[j] = x.TotalTime
+			}
+			name := defaultTableName(prevDate, len(table), mean(durs))
+			printTable(name, cols, table, out.padding)
+			fmt.Println()
+			table = [][]string{}
+		}
+
 		configKey := fmt.Sprintf("%d:%d:%d:%d", p.KSize, p.Buffer, p.Threads, p.Stripe)
 		configAverages[configKey] = append(configAverages[configKey], *p)
 
@@ -88,20 +100,28 @@ func defaultFormat(plots []*plot, failed map[string]error, out options) {
 		for pEnd < len(plots) && plots[pEnd].StartTime.After(p.EndTime) {
 			pEnd--
 		}
-		parallel := pEnd - pStart + 1
-		parallelAverages[parallel] = append(parallelAverages[parallel], *p)
-
-		year, month, day := p.EndTime.Date()
-		if len(table) > 0 && (prevDate[0] != year || prevDate[1] != int(month) || prevDate[2] != day) {
-			durs := make([]float64, len(table))
-			for j, x := range plots[i-len(table) : i] {
-				durs[j] = x.TotalTime
-			}
-			name := defaultTableName(prevDate, len(table), mean(durs))
-			printTable(name, cols, table, out.padding)
-			fmt.Println()
-			table = [][]string{}
+		if pEnd < len(plots) {
+			pEnd++
 		}
+		var parallel int
+		for _, a := range plots[pStart:pEnd] {
+			var start, end int
+			for _, b := range plots[pStart:pEnd] {
+				if !a.StartTime.Before(b.StartTime) && !a.StartTime.After(b.EndTime) {
+					start++
+				}
+				if !a.EndTime.Before(b.StartTime) && !a.EndTime.After(b.EndTime) {
+					end++
+				}
+			}
+			if start > end {
+				parallel = start
+			} else {
+				parallel = end
+			}
+		}
+		parallel++
+		parallelAverages[parallel] = append(parallelAverages[parallel], *p)
 
 		table = append(table, []string{
 			strconv.Itoa(p.KSize),

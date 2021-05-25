@@ -46,7 +46,7 @@ func printTable(name string, cols []string, values [][]string, padding int) erro
 	}
 
 	fmt.Println(name)
-	fmt.Println(strings.Repeat("-", tableWidth))
+	fmt.Println(strings.Repeat("─", tableWidth))
 	for i, c := range cols {
 		fmt.Printf("%s%s", c, strings.Repeat(" ", padding+widths[i]-len(c)))
 	}

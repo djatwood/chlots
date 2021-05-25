@@ -51,25 +51,17 @@ func printTable(name [2]string, cols []string, values [][]string, padding int) e
 	format += " │"
 
 	fmt.Printf(" %s%s%s\n", name[0], strings.Repeat(" ", tableWidth-len(name[0])-len(name[1])), name[1])
-	fmt.Printf("╭%s╮\n│ ", strings.Repeat("─", tableWidth))
-	for i, c := range cols {
-		p := padding
-		if i == len(cols)-1 {
-			p = 0
-		}
-		fmt.Printf("%s%s", c, strings.Repeat(" ", p+widths[i]-len(c)))
-	}
-	fmt.Println(" │")
-	fmt.Printf("├%s┤\n", strings.Repeat("╌", tableWidth))
-
-	for _, row := range values {
+	fmt.Printf("╭%s╮\n", strings.Repeat("─", tableWidth))
+	for i, row := range append([][]string{cols}, values...) {
 		r := make([]interface{}, len(row))
 		for i := range row {
 			r[i] = row[i]
 		}
 		fmt.Printf(format+"\n", r...)
+		if i == 0 {
+			fmt.Printf("├%s┤\n", strings.Repeat("╌", tableWidth))
+		}
 	}
-
 	fmt.Printf("╰%s╯\n", strings.Repeat("─", tableWidth))
 
 	return nil

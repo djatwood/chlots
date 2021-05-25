@@ -42,21 +42,22 @@ func printTable(name [2]string, cols []string, values [][]string, padding int) e
 
 	format := "│ "
 	for i := range cols {
+		p := padding
 		if i == len(cols)-1 {
-			format += "%v"
-		} else {
-			format += fmt.Sprintf("%%-%dv", widths[i]+padding)
+			p = 0
 		}
+		format += fmt.Sprintf("%%-%dv", widths[i]+p)
 	}
 	format += " │"
 
 	fmt.Printf(" %s%s%s\n", name[0], strings.Repeat(" ", tableWidth-len(name[0])-len(name[1])), name[1])
 	fmt.Printf("╭%s╮\n│ ", strings.Repeat("─", tableWidth))
 	for i, c := range cols {
+		p := padding
 		if i == len(cols)-1 {
-			padding = 0
+			p = 0
 		}
-		fmt.Printf("%s%s", c, strings.Repeat(" ", padding+widths[i]-len(c)))
+		fmt.Printf("%s%s", c, strings.Repeat(" ", p+widths[i]-len(c)))
 	}
 	fmt.Println(" │")
 	fmt.Printf("├%s┤\n", strings.Repeat("╌", tableWidth))

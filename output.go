@@ -66,30 +66,27 @@ func printTable(name string, cols []string, values [][]string, padding int) erro
 func defaultFormat(plots []*plot, failed map[string]error, out options) {
 	configAverages := make(map[string][]plot)
 	parallelAverages := make(map[int][]plot)
-	activePlots := []plot{}
+	pStart, pEnd := 0, 0
 	prevDate := [3]int{}
 	table := [][]string{}
 	for _, p := range plots {
 		configKey := fmt.Sprintf("%d:%d:%d:%d", p.KSize, p.Buffer, p.Threads, p.Stripe)
 		configAverages[configKey] = append(configAverages[configKey], *p)
 
-		parallel := len(activePlots) == 0
-		for _, x := range activePlots {
-			if (!p.StartTime.Before(x.StartTime) && !p.StartTime.After(x.EndTime)) ||
-				(!p.EndTime.Before(x.StartTime) && !p.EndTime.After(x.EndTime)) ||
-				(!x.StartTime.Before(p.StartTime) && !x.StartTime.After(p.EndTime)) ||
-				(!x.EndTime.Before(p.StartTime) && !x.EndTime.After(p.EndTime)) {
-				parallel = true
-				break
-			}
+		for pStart > 0 && !plots[pStart].EndTime.Before(p.StartTime) {
+			pStart--
 		}
-
-		if parallel {
-			activePlots = append(activePlots, *p)
-		} else {
-			parallelAverages[len(activePlots)] = append(parallelAverages[len(activePlots)], activePlots...)
-			activePlots = []plot{*p}
+		for pStart < len(plots) && plots[pStart].EndTime.Before(p.StartTime) {
+			pStart++
 		}
+		for pEnd < len(plots) && !plots[pEnd].StartTime.After(p.EndTime) {
+			pEnd++
+		}
+		for pEnd < len(plots) && plots[pEnd].StartTime.After(p.EndTime) {
+			pEnd--
+		}
+		parallel := pEnd - pStart + 1
+		parallelAverages[parallel] = append(parallelAverages[parallel], *p)
 
 		year, month, day := p.EndTime.Date()
 		if len(table) > 0 && (prevDate[0] != year || prevDate[1] != int(month) || prevDate[2] != day) {
@@ -113,10 +110,6 @@ func defaultFormat(plots []*plot, failed map[string]error, out options) {
 		})
 
 		prevDate = [3]int{year, int(month), day}
-	}
-
-	if len(activePlots) > 0 {
-		parallelAverages[len(activePlots)] = append(parallelAverages[len(activePlots)], activePlots...)
 	}
 
 	if len(table) > 0 {

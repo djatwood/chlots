@@ -23,7 +23,7 @@ func export(plots []*plot, failed map[string]error, out options) {
 	}
 }
 
-func printTable(name string, cols []string, values [][]string, padding int) error {
+func printTable(name [2]string, cols []string, values [][]string, padding int) error {
 	widths := make([]int, len(cols))
 	for _, row := range append(values, cols) {
 		if len(row) > len(cols) {
@@ -45,7 +45,7 @@ func printTable(name string, cols []string, values [][]string, padding int) erro
 		format += fmt.Sprintf("%%-%dv", widths[i]+padding)
 	}
 
-	fmt.Println(name)
+	fmt.Printf("%s%s%s\n", name[0], strings.Repeat(" ", tableWidth-len(name[0])-len(name[1])), name[1])
 	fmt.Println(strings.Repeat("─", tableWidth))
 	for i, c := range cols {
 		fmt.Printf("%s%s", c, strings.Repeat(" ", padding+widths[i]-len(c)))
@@ -69,7 +69,7 @@ func defaultFormat(plots []*plot, failed map[string]error, out options) {
 	pStart, pEnd := 0, 0
 	prevDate := [3]int{}
 	table := [][]string{}
-	for _, p := range plots {
+	for i, p := range plots {
 		configKey := fmt.Sprintf("%d:%d:%d:%d", p.KSize, p.Buffer, p.Threads, p.Stripe)
 		configAverages[configKey] = append(configAverages[configKey], *p)
 
@@ -90,7 +90,12 @@ func defaultFormat(plots []*plot, failed map[string]error, out options) {
 
 		year, month, day := p.EndTime.Date()
 		if len(table) > 0 && (prevDate[0] != year || prevDate[1] != int(month) || prevDate[2] != day) {
-			printTable(fmt.Sprintf("%s %d, %d", time.Month(prevDate[1]), prevDate[2], prevDate[0]), cols, table, out.padding)
+			durs := make([]float64, len(table))
+			for j, x := range plots[i-len(table) : i] {
+				durs[j] = x.TotalTime
+			}
+			name := defaultTableName(prevDate, len(table), mean(durs))
+			printTable(name, cols, table, out.padding)
 			fmt.Println()
 			table = [][]string{}
 		}
@@ -113,7 +118,12 @@ func defaultFormat(plots []*plot, failed map[string]error, out options) {
 	}
 
 	if len(table) > 0 {
-		printTable(fmt.Sprintf("%s %d, %d", time.Month(prevDate[1]), prevDate[2], prevDate[0]), cols, table, out.padding)
+		durs := make([]float64, len(table))
+		for j, x := range plots[len(plots)-len(table):] {
+			durs[j] = x.TotalTime
+		}
+		name := defaultTableName(prevDate, len(table), mean(durs))
+		printTable(name, cols, table, out.padding)
 		fmt.Println()
 		table = [][]string{}
 	}
@@ -129,6 +139,13 @@ func defaultFormat(plots []*plot, failed map[string]error, out options) {
 		for loc, err := range failed {
 			fmt.Fprintln(os.Stderr, loc, err)
 		}
+	}
+}
+
+func defaultTableName(date [3]int, amount int, duration float64) [2]string {
+	return [2]string{
+		fmt.Sprintf("%s %2d, %d; %d plots", time.Month(date[1]), date[2], date[0], amount),
+		"Average duration: " + humanTime(duration),
 	}
 }
 
@@ -166,7 +183,7 @@ func printConfigAverages(groups map[string][]plot, padding int) {
 	}
 
 	cols := append(cols[:9], "Plots")
-	printTable("Config Averages", cols, table, padding)
+	printTable([2]string{"Config Averages"}, cols, table, padding)
 }
 
 func printParallelAverages(groups map[int][]plot, padding int) {
@@ -195,7 +212,7 @@ func printParallelAverages(groups map[int][]plot, padding int) {
 	}
 
 	cols := []string{"Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Parallel", "Plots"}
-	err := printTable("Parallel Averages", cols, table, padding)
+	err := printTable([2]string{"Parallel Averages"}, cols, table, padding)
 	if err != nil {
 		panic(err)
 	}

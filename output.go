@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-var cols = []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
-
 func export(plots []*plot, failed map[string]error, out options) {
 	switch out.format {
 	case "default":
@@ -68,6 +66,7 @@ func printTable(name [2]string, cols []string, values [][]string, padding int) e
 }
 
 func defaultFormat(plots []*plot, failed map[string]error, out options) {
+	cols := []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Start", "End"}
 	configAverages := make(map[string][]plot)
 	parallelAverages := make(map[int][]plot)
 	pStart, pEnd := 0, 0
@@ -186,7 +185,7 @@ func printConfigAverages(groups map[string][]plot, padding int) {
 		})
 	}
 
-	cols := append(cols[:9], "Plots")
+	cols := []string{"K", "RAM", "Threads", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Copy", "Total", "Plots"}
 	printTable([2]string{"Config Averages"}, cols, table, padding)
 }
 

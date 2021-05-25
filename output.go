@@ -35,22 +35,31 @@ func printTable(name [2]string, cols []string, values [][]string, padding int) e
 			}
 		}
 	}
-	tableWidth := -padding
+	tableWidth := -padding + 2
 	for _, n := range widths {
 		tableWidth += n + padding
 	}
 
-	var format string
+	format := "│ "
 	for i := range cols {
-		format += fmt.Sprintf("%%-%dv", widths[i]+padding)
+		if i == len(cols)-1 {
+			format += "%v"
+		} else {
+			format += fmt.Sprintf("%%-%dv", widths[i]+padding)
+		}
 	}
+	format += " │"
 
-	fmt.Printf("%s%s%s\n", name[0], strings.Repeat(" ", tableWidth-len(name[0])-len(name[1])), name[1])
-	fmt.Println(strings.Repeat("─", tableWidth))
+	fmt.Printf(" %s%s%s\n", name[0], strings.Repeat(" ", tableWidth-len(name[0])-len(name[1])), name[1])
+	fmt.Printf("╭%s╮\n│ ", strings.Repeat("─", tableWidth))
 	for i, c := range cols {
+		if i == len(cols)-1 {
+			padding = 0
+		}
 		fmt.Printf("%s%s", c, strings.Repeat(" ", padding+widths[i]-len(c)))
 	}
-	fmt.Println()
+	fmt.Println(" │")
+	fmt.Printf("├%s┤\n", strings.Repeat("╌", tableWidth))
 
 	for _, row := range values {
 		r := make([]interface{}, len(row))
@@ -59,6 +68,8 @@ func printTable(name [2]string, cols []string, values [][]string, padding int) e
 		}
 		fmt.Printf(format+"\n", r...)
 	}
+
+	fmt.Printf("╰%s╯\n", strings.Repeat("─", tableWidth))
 
 	return nil
 }

@@ -27,7 +27,7 @@ type parseJob struct {
 var (
 	outputFormat   = flag.String("f", "default", "output format")
 	outputAverages = flag.Bool("a", false, "display averages")
-	tablePadding   = flag.Int("p", 4, "table padding for default output")
+	tablePadding   = flag.Int("p", 3, "table padding for default output")
 	parseJobs      = []parseJob{
 		{"Starting plotting", strings.HasPrefix, parseTempDirs},
 		{"Plot size", strings.HasPrefix, parseKSize},
